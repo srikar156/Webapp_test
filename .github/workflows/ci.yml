@@ -22,6 +22,11 @@ jobs:
         with:
           node-version: 14.15.0
           cache: 'npm'
+          cache-dependency-path: webapp/package-lock.json  # 👈 points to lock file
+
+      - name: Install dependencies
+        working-directory: webapp  # 👈 install inside the webapp folder
+        run: npm ci
 
       - name: Run unit tests
         run: ./build-scripts/linux/unit-test-app.sh
