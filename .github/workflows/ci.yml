@@ -3,16 +3,19 @@ name: CI Pipeline
 on:
   push:
     branches:
-      - main
+      - master
+      - 'develop/**'
+  pull_request:
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: webapp
 
 jobs:
   # ---------- UNIT TEST ----------
   unit-test-app:
     name: Unit Test (Web App)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./webapp
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,19 +25,17 @@ jobs:
         with:
           node-version: 14.15.0
           cache: 'npm'
-          cache-dependency-path: webapp/package-lock.json  # 👈 points to lock file
+          cache-dependency-path: webapp/package-lock.json
 
       - name: Install dependencies
-        working-directory: webapp  # 👈 install inside the webapp folder
-        run: npm ci
-        
-      - name: Make scripts executable
         working-directory: webapp
-        run: chmod +x ../build-scripts/linux/*.sh
+        run: npm ci
+
+      - name: Make scripts executable
+        run: chmod +x build-scripts/linux/*.sh
 
       - name: Run unit tests
-        working-directory: webapp
-        run: ../build-scripts/linux/unit-test-app.sh
+        run: ./build-scripts/linux/unit-test-app.sh
 
       - name: Upload test artifacts
         uses: actions/upload-artifact@v4
@@ -42,11 +43,13 @@ jobs:
           name: unit-tests
           path: webapp/unit-tests/**
 
+
   # ---------- BUILD (DEV) ----------
   build-dev:
-    name: Build (Dev)
+    name: Build & Push (Dev)
     runs-on: ubuntu-latest
     needs: unit-test-app
+    if: github.ref != 'refs/heads/master' || github.ref == 'refs/heads/develop'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -56,24 +59,42 @@ jobs:
         with:
           node-version: 14.15.0
           cache: 'npm'
+          cache-dependency-path: webapp/package-lock.json
 
-      - name: Build Dev
+      - name: Install dependencies
+        working-directory: webapp
+        run: npm ci
+
+      - name: Make scripts executable
+        run: chmod +x build-scripts/linux/*.sh
+
+      - name: Run Dev Build Script
         run: |
           ./build-scripts/linux/build-dev.sh
           source /tmp/env_vars.sh
 
-      - name: Upload Dev Build Artifact
-        uses: actions/upload-artifact@v4
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
         with:
-          name: build-dev
-          path: |
-            ./${{ github.event.repository.name }}-${{ env.MajorRevision }}.${{ env.MinorRevision }}.${{ env.PatchVersion }}.${{ env.BuildVersion }}-${{ github.sha }}-debug-${{ github.run_number }}.zip
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Dev Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:dev
+            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:dev-${{ github.sha }}
+
 
   # ---------- BUILD (PROD) ----------
   build-prod:
-    name: Build (Prod)
+    name: Build & Push (Prod)
     runs-on: ubuntu-latest
     needs: unit-test-app
+    if: github.ref == 'refs/heads/master'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -83,15 +104,31 @@ jobs:
         with:
           node-version: 14.15.0
           cache: 'npm'
+          cache-dependency-path: webapp/package-lock.json
 
-      - name: Build Prod
+      - name: Install dependencies
+        working-directory: webapp
+        run: npm ci
+
+      - name: Make scripts executable
+        run: chmod +x build-scripts/linux/*.sh
+
+      - name: Run Prod Build Script
         run: |
           ./build-scripts/linux/build-prod.sh
           source /tmp/env_vars.sh
 
-      - name: Upload Prod Build Artifact
-        uses: actions/upload-artifact@v4
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
         with:
-          name: build-prod
-          path: |
-            ./${{ github.event.repository.name }}-${{ env.MajorRevision }}.${{ env.MinorRevision }}.${{ env.PatchVersion }}.${{ env.BuildVersion }}-${{ github.sha }}-release-${{ github.run_number }}.zip
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Prod Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:release-${{ github.
