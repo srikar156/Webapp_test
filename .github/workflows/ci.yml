@@ -22,6 +22,9 @@ jobs:
           cache: 'npm'
           cache-dependency-path: webapp/package-lock.json
           
+      - name: Make build scripts executable
+        run: chmod +x ./build-scripts/linux/*.sh
+          
       - name: Build Dev
         run: |
           ./build-scripts/linux/build-dev.sh
@@ -50,6 +53,9 @@ jobs:
           node-version: 14.15.0
           cache: 'npm'
           cache-dependency-path: webapp/package-lock.json
+
+      - name: Make build scripts executable
+        run: chmod +x ./build-scripts/linux/*.sh
 
       - name: Build Prod
         run: |
