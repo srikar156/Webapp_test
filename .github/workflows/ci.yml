@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         working-directory: webapp  # 👈 install inside the webapp folder
         run: npm ci
+        
+      - name: Make scripts executable
+        run: chmod +x build-scripts/linux/*.sh
 
       - name: Run unit tests
         working-directory: webapp
