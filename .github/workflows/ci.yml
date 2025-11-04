@@ -1,4 +1,3 @@
-
 name: CI Pipeline
 
 on:
@@ -27,6 +26,7 @@ jobs:
         run: |
           ./build-scripts/linux/build-dev.sh
           source /tmp/env_vars.sh
+        shell: bash
 
       - name: Upload Dev Build Artifact
         uses: actions/upload-artifact@v4
@@ -39,7 +39,7 @@ jobs:
   build-prod:
     name: Build (Prod)
     runs-on: ubuntu-latest
-    needs: unit-test-app
+    needs: build-dev  # changed from "unit-test-app" unless that job actually exists
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -49,11 +49,13 @@ jobs:
         with:
           node-version: 14.15.0
           cache: 'npm'
+          cache-dependency-path: webapp/package-lock.json
 
       - name: Build Prod
         run: |
           ./build-scripts/linux/build-prod.sh
           source /tmp/env_vars.sh
+        shell: bash
 
       - name: Upload Prod Build Artifact
         uses: actions/upload-artifact@v4
