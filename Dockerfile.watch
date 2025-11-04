@@ -1,0 +1,14 @@
+FROM node:14.15.0
+
+RUN useradd -ms /bin/sh -u 1001 app
+USER app
+
+# Install dependencies
+WORKDIR /app
+COPY ./webapp/package.json ./
+RUN npm install
+
+COPY --chown=app:app ./webapp /app
+
+WORKDIR /app/webapp
+CMD ["npm", "run", "ng-serve"]

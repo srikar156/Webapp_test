@@ -1,0 +1,17 @@
+FROM node:14.15.0
+
+WORKDIR /app
+ARG SHORT_SHA
+ARG SHA
+
+ENV SHORT_SHA=$SHORT_SHA
+ENV SHA=$SHA
+
+COPY ./webapp/package.json /app/webapp/package.json
+COPY ./webapp/package-lock.json /app/webapp/package-lock.json
+
+RUN cd webapp && npm ci
+
+COPY . /app
+
+RUN cd webapp && npm run build-dev

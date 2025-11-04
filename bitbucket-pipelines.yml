@@ -1,0 +1,89 @@
+# Define the base image used to build everything in the pipeline
+image: node:14.15.0-stretch
+
+# Define all the different steps that will be used for the pipeline
+definitions:
+  caches:
+    webapp-node-modules-cache:
+      key:
+        files: # the files you want pipelines to check for changes when deciding whether to use the cache, or download fresh dependencies.
+          - webapp/package.json
+      path: webapp/node_modules # the directory you want to be cached.
+  services:
+    docker:
+      memory: 5128
+  steps:
+    - step: &build-dev
+        name: 'Build (Dev)'
+        # At the moment we are doing just cloud builds
+        # runs-on: 
+         # - 'self.hosted'
+        size: 8x
+        caches:
+          - webapp-node-modules-cache
+        services:
+          - docker
+        script:
+          - ./build-scripts/linux/build-dev.sh
+          - source /tmp/env_vars.sh
+
+          # Bitbucket pipelines plugin to upload files to the downloads
+          - pipe: atlassian/bitbucket-upload-file:0.7.3
+            variables:
+              BITBUCKET_ACCESS_TOKEN: $BITBUCKET_ACCESS_TOKEN
+              FILENAME: "./${BITBUCKET_REPO_SLUG}-${MajorRevision}.${MinorRevision}.${PatchVersion}.${BuildVersion}-${SHORT_SHA}-debug-${BITBUCKET_BUILD_NUMBER}.zip"
+
+    - step: &build-prod
+        name: 'Build (Prod)'
+        # runs-on: 
+         # - 'self.hosted'
+        size: 8x
+        caches:
+          - webapp-node-modules-cache
+        services:
+          - docker
+        script:
+          - ./build-scripts/linux/build-prod.sh
+          - source /tmp/env_vars.sh
+
+          - pipe: atlassian/bitbucket-upload-file:0.7.3
+            variables:
+              BITBUCKET_ACCESS_TOKEN: $BITBUCKET_ACCESS_TOKEN
+              FILENAME: "./${BITBUCKET_REPO_SLUG}-${MajorRevision}.${MinorRevision}.${PatchVersion}.${BuildVersion}-${SHORT_SHA}-release-${BITBUCKET_BUILD_NUMBER}.zip"
+
+    - step: &unit-test-app
+        name: 'Unit Test (Web App)'
+        # runs-on: 
+         # - 'self.hosted'
+        size: 8x
+        caches:
+          - webapp-node-modules-cache
+        script:
+          - ./build-scripts/linux/unit-test-app.sh
+        artifacts:
+          - webapp/unit-tests/**
+
+# Triggers for the pipeline
+pipelines:
+  branches:
+    # Run whenever there is a push to master
+    master:
+      - step: *unit-test-app
+      - parallel:
+        - step: *build-dev
+        - step: *build-prod
+
+    # Run whenever there is a push to a develop/* branch
+    develop/*:
+      - step: *unit-test-app
+      - parallel:
+        - step: *build-dev
+        - step: *build-prod
+        
+  # Run on every pull request
+  pull-requests:
+    '**':
+      - step: *unit-test-app
+      - parallel:
+        - step: *build-dev
+        - step: *build-prod

@@ -1,0 +1,52 @@
+# This will create a production build of the web app
+FROM node:14.15.0
+
+WORKDIR /app
+
+ARG SHORT_SHA
+ARG SHA
+
+ENV SHORT_SHA=$SHORT_SHA
+ENV SHA=$SHA
+
+# Configure old debian repo
+RUN echo "deb http://archive.debian.org/debian stretch main" > /etc/apt/sources.list
+
+# Download 7z
+RUN apt-get update --allow-unauthenticated
+RUN apt-get install --allow-unauthenticated -y p7zip-full
+
+COPY ./webapp/package.json /app/webapp/package.json
+COPY ./webapp/package-lock.json /app/webapp/package-lock.json
+
+RUN cd webapp && npm ci
+
+COPY . /app
+
+# Build the production version of the webapp
+RUN cd webapp && npm run build-prod
+# Run the pre compress stage
+
+# Compress all HTML files
+RUN find ./webapp/build -name '*.html' -exec 7z a -tgzip -mx9 "{}.gz" "{}" >NUL \;
+
+# Compress all CSS files
+RUN find ./webapp/build -name '*.css' -exec 7z a -tgzip -mx9 "{}.gz" "{}" >NUL \;
+
+# Compress all SVG files
+RUN find ./webapp/build -name '*.svg' -exec 7z a -tgzip -mx9 "{}.gz" "{}" >NUL \;
+
+# Compress all Javascript files
+RUN find ./webapp/build -name '*.js' -exec 7z a -tgzip -mx9 "{}.gz" "{}" >NUL \;
+
+# Compress all TTF files
+RUN find ./webapp/build -name '*.ttf' -exec 7z a -tgzip -mx9 "{}.gz" "{}" >NUL \;
+
+# Compress all WOFF files
+RUN find ./webapp/build -name '*.woff' -exec 7z a -tgzip -mx9 "{}.gz" "{}" >NUL \;
+
+# Compress all WOFF2 files
+RUN find ./webapp/build -name '*.woff2' -exec 7z a -tgzip -mx9 "{}.gz" "{}" >NUL \;
+
+# Compress all EOT files
+RUN find ./webapp/build -name '*.eot' -exec 7z a -tgzip -mx9 "{}.gz" "{}" >NUL \;

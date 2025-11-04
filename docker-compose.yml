@@ -1,0 +1,46 @@
+# You can run docker compose watch to start watching for changes in the app
+services:
+  watch-app:
+    container_name: 'watch-app'
+    build:
+      context: '.'
+      dockerfile: 'Dockerfile.watch'
+    ports:
+      - '4200:4200'
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: package.json
+
+  development-app:
+    container_name: 'development-app'
+    build:
+      context: '.'
+      dockerfile: 'Dockerfile.debug'
+      args:
+        - SHORT_SHA=${SHORT_SHA}
+        - SHA=${SHA}
+    # Run in interactive mode to get the build out
+    stdin_open: true
+    tty: true
+    ports:
+      - '4200:4200'
+
+  production-app:
+    container_name: 'production-app'
+    build:
+      context: '.'
+      dockerfile: 'Dockerfile.release'
+      args:
+        - SHORT_SHA=${SHORT_SHA}
+        - SHA=${SHA}
+    # Run in interactive mode to get the build out
+    stdin_open: true
+    tty: true
+    ports:
+      - '4200:4200'
