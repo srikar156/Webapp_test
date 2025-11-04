@@ -46,6 +46,7 @@ jobs:
   build-dev:
     name: Build (Dev)
     runs-on: ubuntu-latest
+    needs: unit-test-app
     
     steps:
       - name: Checkout repository
@@ -78,7 +79,7 @@ jobs:
   build-prod:
     name: Build (Prod)
     runs-on: ubuntu-latest
-    needs: build-dev  # changed from "unit-test-app" unless that job actually exists
+    needs: unit-test-app
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
