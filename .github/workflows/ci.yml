@@ -1,0 +1,87 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # ---------- UNIT TEST ----------
+  unit-test-app:
+    name: Unit Test (Web App)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./webapp
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 14.15.0
+          cache: 'npm'
+
+      - name: Run unit tests
+        run: ./build-scripts/linux/unit-test-app.sh
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-tests
+          path: webapp/unit-tests/**
+
+  # ---------- BUILD (DEV) ----------
+  build-dev:
+    name: Build (Dev)
+    runs-on: ubuntu-latest
+    needs: unit-test-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 14.15.0
+          cache: 'npm'
+
+      - name: Build Dev
+        run: |
+          ./build-scripts/linux/build-dev.sh
+          source /tmp/env_vars.sh
+
+      - name: Upload Dev Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-dev
+          path: |
+            ./${{ github.event.repository.name }}-${{ env.MajorRevision }}.${{ env.MinorRevision }}.${{ env.PatchVersion }}.${{ env.BuildVersion }}-${{ github.sha }}-debug-${{ github.run_number }}.zip
+
+  # ---------- BUILD (PROD) ----------
+  build-prod:
+    name: Build (Prod)
+    runs-on: ubuntu-latest
+    needs: unit-test-app
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 14.15.0
+          cache: 'npm'
+
+      - name: Build Prod
+        run: |
+          ./build-scripts/linux/build-prod.sh
+          source /tmp/env_vars.sh
+
+      - name: Upload Prod Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-prod
+          path: |
+            ./${{ github.event.repository.name }}-${{ env.MajorRevision }}.${{ env.MinorRevision }}.${{ env.PatchVersion }}.${{ env.BuildVersion }}-${{ github.sha }}-release-${{ github.run_number }}.zip
