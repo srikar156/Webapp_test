@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-
 jobs:
   # ---------- UNIT TEST ----------
   unit-test-app:
@@ -62,11 +61,12 @@ jobs:
         run: npm ci
 
       - name: Make scripts executable
-        run: chmod +x build-scripts/linux/*.sh
+        working-directory: webapp
+        run: chmod +x ../build-scripts/linux/*.sh
 
       - name: Run Dev Build Script
         run: |
-          ./build-scripts/linux/build-dev.sh
+          ../build-scripts/linux/build-dev.sh
           source /tmp/env_vars.sh
 
       - name: Log in to DockerHub
@@ -107,11 +107,12 @@ jobs:
         run: npm ci
 
       - name: Make scripts executable
-        run: chmod +x build-scripts/linux/*.sh
+        working-directory: webapp
+        run: chmod +x ../build-scripts/linux/*.sh
 
       - name: Run Prod Build Script
         run: |
-          ./build-scripts/linux/build-prod.sh
+          ../build-scripts/linux/build-prod.sh
           source /tmp/env_vars.sh
 
       - name: Log in to DockerHub
