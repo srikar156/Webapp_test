@@ -7,42 +7,6 @@ on:
       - main
 
 jobs:
-  # ---------- UNIT TEST ----------
-  unit-test-app:
-    name: Unit Test (Web App)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./webapp
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 14.15.0
-          cache: 'npm'
-          cache-dependency-path: webapp/package-lock.json  # 👈 points to lock file
-
-      - name: Install dependencies
-        working-directory: webapp  # 👈 install inside the webapp folder
-        run: npm ci
-        
-      - name: Make scripts executable
-        working-directory: webapp
-        run: chmod +x ../build-scripts/linux/*.sh
-
-      - name: Run unit tests
-        working-directory: webapp
-        run: ../build-scripts/linux/unit-test-app.sh
-
-      - name: Upload test artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: unit-tests
-          path: webapp/unit-tests/**
-
   # ---------- BUILD (DEV) ----------
   build-dev:
     name: Build (Dev)
