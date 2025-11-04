@@ -29,7 +29,8 @@ jobs:
         run: npm ci
         
       - name: Make scripts executable
-        run: chmod +x build-scripts/linux/*.sh
+        working-directory: webapp
+        run: chmod +x ../build-scripts/linux/*.sh
 
       - name: Run unit tests
         working-directory: webapp
