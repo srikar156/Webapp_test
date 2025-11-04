@@ -29,7 +29,8 @@ jobs:
         run: npm ci
 
       - name: Run unit tests
-        run: ./build-scripts/linux/unit-test-app.sh
+        working-directory: webapp
+        run: ../build-scripts/linux/unit-test-app.sh
 
       - name: Upload test artifacts
         uses: actions/upload-artifact@v4
